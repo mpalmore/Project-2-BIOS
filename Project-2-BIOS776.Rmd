@@ -1,0 +1,252 @@
+---
+title: "Project 2 - Meredith Palmore"
+author: "Meredith Palmore"
+date: "9/29/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Load packages
+
+```{r}
+library(tidyverse)
+
+library(here)
+
+```
+
+
+# Part 1: Fun with functions 
+
+## Part 1A: Exponential Transformation
+
+
+
+```{r exponentiate}
+Exp <- function(x, k) {
+  output <- 1
+  for(i in 1:k){
+    output <- output + x^i/(factorial(i))
+  }
+  print(output)
+}
+
+```
+
+## Part 1B: Sample mean and sample standard deviation
+
+
+```{r mean and sd}
+sample_mean <- function(x){
+  1/length(x)*sum(x)
+}
+
+sample_sd <- function(x){
+  term_1 <- 1/(length(x)-1)
+  term_2 <- sum((x - sample_mean(x))^2)
+  sqrt(term_1*term_2)
+}
+
+```
+
+## Part 1C: Confidence Intervals
+
+```{r confidence intervals}
+calculate_CI <- function(x, conf = 0.95){
+  alpha <- 1 - conf
+  degrees_freedom = length(x) - 1
+  t_score = qt(p=alpha/2, df=degrees_freedom, lower.tail=FALSE)
+  error <- sd(x)/(sqrt(length(x)))
+  lower_bound <- mean(x) - (t_score*error)
+  upper_bound <- mean(x) + (t_score*error)
+  interval <- c(lower_bound, upper_bound) 
+  names(interval) <- c("lower_bound", "upper_bound")
+  interval
+}
+
+```
+
+
+
+# Part 2: Wrangling data
+
+
+Check if the data is located in the directory and download if not
+
+```{r download the data}
+
+
+if(!file.exists(here("Project 2 BIOS","tuesdata_rainfall.RDS"))){
+  tuesdata <- tidytuesdayR::tt_load('2020-01-07')
+  rainfall <- tuesdata$rainfall
+  temperature <- tuesdata$temperature
+  
+  # save the files to RDS objects
+  saveRDS(tuesdata$rainfall, file= here("Project 2 BIOS","tuesdata_rainfall.RDS"))
+  saveRDS(tuesdata$temperature, file=here("Project 2 BIOS","tuesdata_temperature.RDS"))
+}
+
+
+temperature <- readRDS(here("tuesdata_temperature.RDS"))
+
+rainfall <- readRDS("tuesdata_rainfall.RDS")
+
+```
+
+Explore the data with `glimpse()`
+
+```{r}
+
+glimpse(rainfall)
+
+glimpse(temperature)
+
+```
+
+## Tasks
+
+Using the `rainfall` and `temperature` data, perform the following steps and create a new data frame called df:
+
+1. Start with rainfall dataset and drop any rows with NAs.
+```{r drop nas}
+
+df <- drop_na(rainfall)
+
+```
+
+
+2. Create a new column titled date that combines the columns year, month, day into one column separated by “-”. (e.g. “2020-01-01”). This column should not be a character, but should be recognized as a date. (Hint check out the ymd() function in lubridate R package). You will also want to add a column that just keeps the year.
+
+```{r adding column}
+library(lubridate)
+
+# Add the full date into a new column
+
+df <- df %>% mutate("date" = paste(year,month,day, sep = "-"))
+
+# Drop the month and date
+
+df <- df %>% select(!c(month, day))
+
+# Convert into a date format
+
+df$date <- ymd(df$date)
+
+  class(df$date)
+
+```
+
+
+3. Using the city_name column, convert the city names (character strings) to all upper case.
+
+```{r upper case}
+
+df$city_name <- toupper(df$city_name)
+
+```
+
+
+4. Join this wrangled rainfall dataset with the temperature dataset such that it includes only observations that are in both data frames. (Hint there are two keys that you will need to join the two datasets together). (Hint: If all has gone well thus far, you should have a dataset with 83,964 rows and 13 columns).
+
+```{r join two datasets}
+
+df <- inner_join(temperature, df, by = c("city_name","date"))
+
+glimpse(df)
+
+```
+
+# Part 3: Data visualization
+
+## Part 3A: Plotting temperature data over time
+
+```{r temperature trends}
+
+plot1 <- df %>% filter(year >= 2014) %>% ggplot(aes(x = date)) + 
+  facet_grid(city_name~.) +
+  stat_summary(mapping = aes(y = temperature, color = "red"), fun = 'min', geom = 'line', show.legend = TRUE) + 
+  stat_summary(mapping = aes(y = temperature, color = 'blue'), fun = 'max', geom = 'line', show.legend = TRUE) +
+  scale_color_manual(name = "Temperature", values=c("red","blue"), labels = c("Temp Min", "Temp Max"))  +
+  labs(title = "Temperature trends since 2014", subtitle = "Seasonal trends in 6 Australian cities are consistent over time. The most variable temperatures are those in Perth and Melbourne.", caption = "Temperatures are shown for 5 Australian cities: Brisbane, Canberra, Melbourne, Perth, and Sydney. The Y axes are scaled the same to make comparisons across cities easier.",  x = "Date of measurement", y = "Temperature in Celcius") + 
+  scale_x_date(date_labels = "%m/%y", date_breaks = "6 months") + scale_y_continuous(breaks = waiver(), n.breaks = 4) + 
+  theme(text=element_text(family="serif", size = 10))
+
+plot1
+
+```
+
+
+## Part 3B: Plotting rainfall over time
+
+```{r histogram function}
+
+histo <- function(city, which_year){
+  new_df <- df %>% filter(city_name == toupper(city), year == as.numeric(which_year))
+  if(nrow(new_df) > 0){    
+    new_df %>% ggplot(aes(log(rainfall))) + 
+    geom_histogram() + 
+    labs(x = "Log-transformed rainfall (mm)", y = "Number of Observations", title = paste("Rainfall frequency and amounts in", which_year))
+  }
+  else{
+    stop("The city and state combination do not exist in the dataset")
+  }
+}
+
+histo("perth",2009)
+
+```
+
+
+* I chose arguments for the function that were not the same as the variable names to make the code more readable. 
+
+* Transform the city name to all capital letters so that case of the input doesn't matter. This will make it easier on the user. 
+
+* Make a subsetted dataframe of the rows that contain the city name and year from the arguments. Doing this first and storing in a new variable allows you to check whether or not the dataframe contains any rows in an `if()` statement.
+
+* Then check to see if this dataframe contains any values in an `if()` statement. If it doesn't, then it will return a message to the user that the combo doesn't exist. If it does, then print a histogram of the
+
+
+# Part 4: Apply functions and plot
+
+## Part 4A: Tasks 
+
+
+```{r summarize rain}
+
+rain_df <- df %>% filter(year >= 2014) %>% group_by(city_name, year) %>% summarize(mean = sample_mean(rainfall), std_dev = sample_sd(rainfall), lower_bound = calculate_CI(rainfall)[1], upper_bound = calculate_CI(rainfall)[2])
+
+
+```
+
+
+## Part 4B: Tasks 
+
+```{r plot rain}
+
+rainplot <- rain_df %>% ggplot(aes(x = year, y = mean)) + 
+  geom_point(fill="blue") +
+  facet_grid(city_name~.) +
+  geom_errorbar(mapping = aes(x = year, ymin = lower_bound, ymax = upper_bound), color="magenta", width = 0.2, size = 0.75) +
+  geom_line(color = "blue", size = .75) +
+  labs(title = "Rainfall in Australian Cities Since 2014", y = "Mean Rainfall (mm)", x = "Year", subtitle = str_wrap("Figure 2: Perth experiences the highest levels of rainfall anually. Canberra experiences the lowest levels of rainfall anually. 2015 was an unusually rainy year for Brisbane.", 100)) +
+  # theme(plot.caption = element_text(hjust = 0)) +
+  theme_bw() 
+  
+
+
+
+
+rainplot
+
+```
+
+
+
+
+
+
+
