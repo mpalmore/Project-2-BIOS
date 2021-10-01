@@ -1,7 +1,7 @@
 ---
 title: "Project 2 - Meredith Palmore"
 author: "Meredith Palmore"
-date: "9/29/2021"
+date: "10/1/2021"
 output: html_document
 ---
 
@@ -79,21 +79,20 @@ Check if the data is located in the directory and download if not
 
 ```{r download the data}
 
-
-if(!file.exists(here("Project 2 BIOS","tuesdata_rainfall.RDS"))){
+if(!file.exists(here("tuesdata_rainfall.RDS"))){
   tuesdata <- tidytuesdayR::tt_load('2020-01-07')
   rainfall <- tuesdata$rainfall
   temperature <- tuesdata$temperature
   
   # save the files to RDS objects
-  saveRDS(tuesdata$rainfall, file= here("Project 2 BIOS","tuesdata_rainfall.RDS"))
-  saveRDS(tuesdata$temperature, file=here("Project 2 BIOS","tuesdata_temperature.RDS"))
+  saveRDS(tuesdata$rainfall, file= here("tuesdata_rainfall.RDS"))
+  saveRDS(tuesdata$temperature, file=here("tuesdata_temperature.RDS"))
 }
 
 
 temperature <- readRDS(here("tuesdata_temperature.RDS"))
 
-rainfall <- readRDS("tuesdata_rainfall.RDS")
+rainfall <- readRDS(here("tuesdata_rainfall.RDS"))
 
 ```
 
@@ -164,16 +163,16 @@ glimpse(df)
 
 ## Part 3A: Plotting temperature data over time
 
-```{r temperature trends}
+```{r temperature trends, fig.height = 10, fig.width = 10}
 
 plot1 <- df %>% filter(year >= 2014) %>% ggplot(aes(x = date)) + 
   facet_grid(city_name~.) +
   stat_summary(mapping = aes(y = temperature, color = "red"), fun = 'min', geom = 'line', show.legend = TRUE) + 
   stat_summary(mapping = aes(y = temperature, color = 'blue'), fun = 'max', geom = 'line', show.legend = TRUE) +
   scale_color_manual(name = "Temperature", values=c("red","blue"), labels = c("Temp Min", "Temp Max"))  +
-  labs(title = "Temperature trends since 2014", subtitle = "Seasonal trends in 6 Australian cities are consistent over time. The most variable temperatures are those in Perth and Melbourne.", caption = "Temperatures are shown for 5 Australian cities: Brisbane, Canberra, Melbourne, Perth, and Sydney. The Y axes are scaled the same to make comparisons across cities easier.",  x = "Date of measurement", y = "Temperature in Celcius") + 
+  labs(title = "Temperature trends since 2014", subtitle = str_wrap("Seasonal trends in 6 Australian cities are consistent over time. The most variable temperatures are those in Perth and Melbourne.",80), caption = str_wrap("Temperatures are shown for 5 Australian cities: Brisbane, Canberra, Melbourne, Perth, and Sydney. The Y axes are scaled the same to make comparisons across cities easier.",100),  x = "Date of measurement", y = "Temperature in Celcius") + 
   scale_x_date(date_labels = "%m/%y", date_breaks = "6 months") + scale_y_continuous(breaks = waiver(), n.breaks = 4) + 
-  theme(text=element_text(family="serif", size = 10))
+  theme(text=element_text(family="serif", size = 14))
 
 plot1
 
@@ -225,16 +224,16 @@ rain_df <- df %>% filter(year >= 2014) %>% group_by(city_name, year) %>% summari
 
 ## Part 4B: Tasks 
 
-```{r plot rain}
+```{r plot rain, fig.height = 10, fig.width = 10}
 
 rainplot <- rain_df %>% ggplot(aes(x = year, y = mean)) + 
   geom_point(fill="blue") +
   facet_grid(city_name~.) +
   geom_errorbar(mapping = aes(x = year, ymin = lower_bound, ymax = upper_bound), color="magenta", width = 0.2, size = 0.75) +
   geom_line(color = "blue", size = .75) +
-  labs(title = "Rainfall in Australian Cities Since 2014", y = "Mean Rainfall (mm)", x = "Year", subtitle = str_wrap("Figure 2: Perth experiences the highest levels of rainfall anually. Canberra experiences the lowest levels of rainfall anually. 2015 was an unusually rainy year for Brisbane.", 100)) +
-  # theme(plot.caption = element_text(hjust = 0)) +
-  theme_bw() 
+  labs(title = "Rainfall in Australian Cities Since 2014", y = "Mean Rainfall (mm)", x = "Year", subtitle = str_wrap("Figure 2: Perth experiences the highest levels of rainfall anually. Canberra experiences the lowest levels of rainfall anually. 2015 was an unusually rainy year for Brisbane.", 80)) +
+  theme_bw() +
+  theme(text=element_text(family="serif", size = 14))
   
 
 
