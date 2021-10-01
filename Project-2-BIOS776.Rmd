@@ -187,7 +187,7 @@ histo <- function(city, which_year){
   new_df <- df %>% filter(city_name == toupper(city), year == as.numeric(which_year))
   if(nrow(new_df) > 0){    
     new_df %>% ggplot(aes(log(rainfall))) + 
-    geom_histogram() + 
+    geom_histogram(fill = "light blue") + 
     labs(x = "Log-transformed rainfall (mm)", y = "Number of Observations", title = paste("Rainfall frequency and amounts in", which_year))
   }
   else{
